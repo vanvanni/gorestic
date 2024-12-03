@@ -1,0 +1,16 @@
+[Unit]
+Description=GoRestic
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/local/bin/your-go-binary
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/gorestic/output.log
+StandardError=append:/var/log/gorestic/error.log
+
+[Install]
+WantedBy=multi-user.target

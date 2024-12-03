@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.Title}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <h1 class="text-xl font-bold text-gray-800">{{.Title}}</h1>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Filter -->
+            <div class="mb-6">
+                <label for="sourceFilter" class="block text-sm font-medium text-gray-700">Filter by Source</label>
+                <div class="mt-1 flex rounded-md shadow-sm">
+                    <select id="sourceFilter" class="flex-1 rounded-md border-gray-300 py-2 px-3 focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <option value="all">All Sources</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Stats Overview -->
+            <div id="statsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Stats cards will be inserted here -->
+            </div>
+
+            <!-- Charts -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Size Over Time -->
+                <div class="bg-white overflow-hidden shadow rounded-lg h-[400px]">
+                    <div class="px-4 py-5 sm:p-6 h-full flex flex-col">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">Backup Size Over Time</h3>
+                        <div class="flex-1 min-h-0">
+                            <canvas id="sizeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- File Count Over Time -->
+                <div class="bg-white overflow-hidden shadow rounded-lg h-[400px]">
+                    <div class="px-4 py-5 sm:p-6 h-full flex flex-col">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900">File Count Over Time</h3>
+                        <div class="flex-1 min-h-0">
+                            <canvas id="fileCountChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Snapshot History -->
+                <div class="bg-white overflow-hidden shadow rounded-lg lg:col-span-2">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Backup History</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead>
+                                    <tr>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp</th>
+                                        <th class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
+                                        <th class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                                        <th class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Files</th>
+                                        <th class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Snapshots</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="historyTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Table rows will be inserted here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Helper function to format bytes
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(1024));
+            return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
+        }
+
+        // Helper function to format date
+        function formatDate(date) {
+            return moment(date).format('YYYY-MM-DD HH:mm:ss');
+        }
+
+        // Create a stats card
+        function createStatsCard(stats) {
+            const sourceName = stats.api_key_name || 'Unknown Source';
+            const size = stats.total_size || 0;
+            const fileCount = stats.total_file_count || 0;
+            const snapshotCount = stats.snapshots_count || 0;
+            const timestamp = stats.created_at ? formatDate(stats.created_at) : 'N/A';
+
+            return `
+                <div class="bg-white overflow-hidden shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 bg-blue-500 rounded-md p-3">
+                                <svg class="h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>
+                                </svg>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <dl>
+                                    <dt class="text-sm font-medium text-gray-500 truncate">
+                                        ${sourceName}
+                                    </dt>
+                                    <dd class="flex items-baseline">
+                                        <div class="text-2xl font-semibold text-gray-900">
+                                            ${formatBytes(size)}
+                                        </div>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-4 sm:px-6">
+                        <div class="text-sm">
+                            <div class="font-medium text-gray-500">Files: ${fileCount}</div>
+                            <div class="font-medium text-gray-500">Snapshots: ${snapshotCount}</div>
+                            <div class="font-medium text-gray-500">Updated: ${timestamp}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Create a history table row
+        function createHistoryRow(stats) {
+            const sourceName = stats.api_key_name || 'Unknown Source';
+            const size = stats.total_size || 0;
+            const fileCount = stats.total_file_count || 0;
+            const snapshotCount = stats.snapshots_count || 0;
+            const timestamp = stats.created_at ? formatDate(stats.created_at) : 'N/A';
+
+            return `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${timestamp}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sourceName}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${formatBytes(size)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${fileCount}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">${snapshotCount}</td>
+                </tr>
+            `;
+        }
+
+        // Initialize charts
+        let sizeChart, fileCountChart;
+        let allData = [];
+        let selectedSource = 'all';
+
+        // Function to filter data based on selected source
+        function filterData(data, source) {
+            if (source === 'all') return data;
+            return data.filter(item => item.api_key_name === source);
+        }
+
+        // Function to update source filter options
+        function updateSourceFilter(data) {
+            const sourceFilter = document.getElementById('sourceFilter');
+            const sources = [...new Set(data.map(item => item.api_key_name))].sort();
+            
+            // Keep the current selection if it exists
+            const currentValue = sourceFilter.value;
+            
+            // Clear current options except 'All Sources'
+            sourceFilter.innerHTML = '<option value="all">All Sources</option>';
+            
+            // Add source options
+            sources.forEach(source => {
+                const option = document.createElement('option');
+                option.value = source;
+                option.textContent = source;
+                sourceFilter.appendChild(option);
+            });
+
+            // Restore selection if it still exists in the new data
+            if (sources.includes(currentValue)) {
+                sourceFilter.value = currentValue;
+            }
+        }
+
+        // Add source filter event listener
+        document.getElementById('sourceFilter').addEventListener('change', function(e) {
+            selectedSource = e.target.value;
+            updateUI(allData);
+        });
+
+        function initializeCharts(data) {
+            // Group data by source
+            const sources = {};
+            data.forEach(stat => {
+                const sourceName = stat.api_key_name || 'Unknown Source';
+                if (!sources[sourceName]) {
+                    sources[sourceName] = {
+                        sizes: [],
+                        fileCounts: []
+                    };
+                }
+
+                const timestamp = new Date(stat.created_at);
+                sources[sourceName].sizes.push({
+                    x: timestamp,
+                    y: stat.total_size || 0
+                });
+                sources[sourceName].fileCounts.push({
+                    x: timestamp,
+                    y: stat.total_file_count || 0
+                });
+            });
+
+            // Create datasets for each source
+            const sizeDatasets = [];
+            const fileCountDatasets = [];
+
+            Object.entries(sources).forEach(([sourceName, sourceData]) => {
+                const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+
+                // Sort data points by timestamp
+                sourceData.sizes.sort((a, b) => a.x - b.x);
+                sourceData.fileCounts.sort((a, b) => a.x - b.x);
+
+                sizeDatasets.push({
+                    label: sourceName,
+                    data: sourceData.sizes,
+                    borderColor: color,
+                    fill: false,
+                    tension: 0.1
+                });
+
+                fileCountDatasets.push({
+                    label: sourceName,
+                    data: sourceData.fileCounts,
+                    borderColor: color,
+                    fill: false,
+                    tension: 0.1
+                });
+            });
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        top: 20,
+                        bottom: 25
+                    }
+                },
+                interaction: {
+                    intersect: false,
+                    mode: 'nearest'
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: 'hour',
+                            tooltipFormat: 'YYYY-MM-DD HH:mm:ss',
+                            displayFormats: {
+                                hour: 'MMM D HH:mm'
+                            }
+                        },
+                        display: true,
+                        title: {
+                            display: true,
+                            text: 'Date'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        display: true,
+                        grid: {
+                            drawBorder: false
+                        },
+                        ticks: {
+                            maxTicksLimit: 8
+                        }
+                    }
+                }
+            };
+
+            // Create size chart
+            const sizeCtx = document.getElementById('sizeChart').getContext('2d');
+            if (sizeChart) sizeChart.destroy();
+            sizeChart = new Chart(sizeCtx, {
+                type: 'line',
+                data: {
+                    datasets: sizeDatasets
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            ...commonOptions.scales.y,
+                            ticks: {
+                                callback: formatBytes
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Create file count chart
+            const fileCtx = document.getElementById('fileCountChart').getContext('2d');
+            if (fileCountChart) fileCountChart.destroy();
+            fileCountChart = new Chart(fileCtx, {
+                type: 'line',
+                data: {
+                    datasets: fileCountDatasets
+                },
+                options: commonOptions
+            });
+        }
+
+        // Function to update all UI components
+        function updateUI(data) {
+            // Store the full dataset
+            allData = data;
+
+            // Filter data based on selected source
+            const filteredData = filterData(data, selectedSource);
+
+            // Update source filter options
+            updateSourceFilter(data);
+
+            // Sort data by date, newest first
+            filteredData.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            // Get latest stats for each source
+            const latestStats = {};
+            filteredData.forEach(stat => {
+                const sourceName = stat.api_key_name;
+                if (!latestStats[sourceName] || 
+                    new Date(stat.created_at) > new Date(latestStats[sourceName].created_at)) {
+                    latestStats[sourceName] = stat;
+                }
+            });
+
+            // Update stats cards
+            const statsContainer = document.getElementById('statsContainer');
+            statsContainer.innerHTML = Object.values(latestStats)
+                .map(createStatsCard)
+                .join('');
+
+            // Update history table
+            const historyTableBody = document.getElementById('historyTableBody');
+            historyTableBody.innerHTML = filteredData
+                .map(createHistoryRow)
+                .join('');
+
+            // Update charts
+            initializeCharts(filteredData);
+        }
+
+        // Function to fetch and update data
+        async function fetchAndUpdateData() {
+            try {
+                const response = await fetch('/api/stats');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                updateUI(data);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // Initial load
+        fetchAndUpdateData();
+
+        // Refresh data every minute
+        setInterval(fetchAndUpdateData, 60000);
+    </script>
+</body>
+</html>
