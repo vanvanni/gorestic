@@ -1,6 +1,8 @@
 # 📊 GORestic
 GORestic provides a simple dashboard for monitoring your Restic backup statistics. It offers a simple yet powerful way to track backup sizes, file counts, and snapshot statistics across multiple backup sources.
 
+![screenshot](.static/dashboard.png)
+
 ## Features
 Every feature in GORestic is designed with simplicity and efficiency in mind:
 
@@ -29,7 +31,7 @@ chmod +x gorestic
 
 On first run, GORestic will create a default configuration file at `~/.config/gorestic/config.toml`.
 
-### Docker
+### Docker (SOON)
 Run using Docker:
 
 ```bash
