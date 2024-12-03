@@ -115,8 +115,6 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
-	fmt.Println(cfg)
-
 	dataDir := filepath.Dir(cfg.Storage.Path)
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create data directory: %w", err)
