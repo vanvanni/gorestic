@@ -1,0 +1,7 @@
+services:
+  gorestic:
+    image: vanvanni/gorestic:latest
+    ports:
+      - 2010:2010
+    volumes:
+      - ./.config:/root/.config/gorestic
