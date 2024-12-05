@@ -1,0 +1,48 @@
+# CONCEPT
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gorestic
+  labels:
+    app: gorestic
+spec:
+  ports:
+    - port: 2010
+      targetPort: 2010
+      protocol: TCP
+      name: http
+  selector:
+    app: gorestic
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gorestic-config-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: gorestic
+  labels:
+    app: gorestic
+spec:
+  containers:
+    - name: gorestic
+      image: gorestic
+      ports:
+        - containerPort: 2010
+          name: http
+      volumeMounts:
+        - name: config-volume
+          mountPath: /home/root/.config
+  volumes:
+    - name: config-volume
+      persistentVolumeClaim:
+        claimName: gorestic-config-pvc
