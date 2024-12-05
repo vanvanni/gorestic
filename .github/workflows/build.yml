@@ -44,6 +44,4 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: |
-            vanvanni/gorestic:latest
-            vanvanni/gorestic:${{ env.VERSION }}
+          tags: vanvanni/gorestic:latest
