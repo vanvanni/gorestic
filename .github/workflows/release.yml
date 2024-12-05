@@ -1,17 +1,16 @@
-name: Release
+name: Release Artifacts
 
 on:
   push:
     tags:
-      - "v*" # Trigger on version tags
+      - "v*"
 
 permissions:
   contents: write
 
 jobs:
-  build-and-release:
+  github-release:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         include:
@@ -19,7 +18,7 @@ jobs:
             arch: amd64
           - os: linux
             arch: arm64
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -42,10 +41,10 @@ jobs:
           if [ "${{ matrix.os }}" = "windows" ]; then
             binary_name="${binary_name}.exe"
           fi
-          go build -v -o "dist/${binary_name}_${{ matrix.os }}_${{ matrix.arch }}_${{ env.VERSION }}"
+          go build -v -ldflags="-w -s" -o "dist/${binary_name}_${{ matrix.os }}_${{ matrix.arch }}_${{ env.VERSION }}"
 
       - name: Create Release
-        if: matrix.os == 'linux' && matrix.arch == 'amd64' # Only create release once
+        if: matrix.os == 'linux' && matrix.arch == 'amd64'
         uses: softprops/action-gh-release@v1
         with:
           name: Release ${{ env.VERSION }}

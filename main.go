@@ -17,7 +17,7 @@ import (
 	"github.com/vanvanni/gorestic/internal/web"
 )
 
-//go:embed views/*.html
+//go:embed views/*
 var viewsFS embed.FS
 
 func main() {

@@ -17,6 +17,6 @@ func NewHandler(store *storage.Manager) *Handler {
 
 func (h *Handler) HandleDashboard(c *fiber.Ctx) error {
 	return c.Render("views/index", fiber.Map{
-		"Title": "Restic Backup Dashboard",
-	})
+		"Title": "GORestic",
+	}, "views/layouts/app")
 }
