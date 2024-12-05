@@ -34,7 +34,6 @@ func (r *Repository) CreateAPIKey(name string, key string, description string) (
 func (r *Repository) GetAllAPIKeys() ([]models.APIKey, error) {
 	var keys []models.APIKey
 	result := r.db.Find(&keys)
-	fmt.Println("Result: ", result)
 	return keys, result.Error
 }
 
