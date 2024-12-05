@@ -16,6 +16,15 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
+func (r *Repository) GetAPIKeyByKey(ctx context.Context, key string) (*models.APIKey, error) {
+	var apiKey models.APIKey
+	result := r.db.WithContext(ctx).Where("key = ?", key).First(&apiKey)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &apiKey, nil
+}
+
 func (r *Repository) CreateAPIKey(name string, key string, description string) (*models.APIKey, error) {
 	apiKey := &models.APIKey{Name: name, Key: key, Description: description}
 	result := r.db.Create(apiKey)
@@ -29,11 +38,14 @@ func (r *Repository) GetAllAPIKeys() ([]models.APIKey, error) {
 	return keys, result.Error
 }
 
-func (r *Repository) GetAPIKeyByKey(ctx context.Context, key string) (*models.APIKey, error) {
-	var apiKey models.APIKey
-	result := r.db.WithContext(ctx).Where("key = ?", key).First(&apiKey)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return &apiKey, nil
+func (r *Repository) CreateSource(name string, key string, description string) (uint, error) {
+	source := &models.Source{}
+	result := r.db.Create(source)
+	return source.ID, result.Error
+}
+
+func (r *Repository) GetAllSources() ([]models.Source, error) {
+	var sources []models.Source
+	result := r.db.Find(&sources)
+	return sources, result.Error
 }
