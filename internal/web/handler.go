@@ -2,21 +2,18 @@ package web
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/vanvanni/gorestic/internal/storage"
 )
 
-type Handler struct {
-	storage *storage.Manager
-}
-
-func NewHandler(store *storage.Manager) *Handler {
-	return &Handler{
-		storage: store,
-	}
-}
-
-func (h *Handler) HandleDashboard(c *fiber.Ctx) error {
+func HandleDashboard(c *fiber.Ctx) error {
 	return c.Render("views/index", fiber.Map{
 		"Title": "GORestic",
 	}, "views/layouts/app")
+}
+
+func HandleSources(c *fiber.Ctx) error {
+	return c.Render("views/sources", fiber.Map{}, "views/layouts/app")
+}
+
+func HandleKeys(c *fiber.Ctx) error {
+	return c.Render("views/keys", fiber.Map{}, "views/layouts/app")
 }

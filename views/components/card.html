@@ -1,0 +1,8 @@
+{{ define "card" }}
+<div class="card">
+    <h1>{{ .Title }}</h1>
+    <div class="body">
+        {{ block "card-content" . }}{{ end }}
+    </div>
+</div>
+{{ end }}

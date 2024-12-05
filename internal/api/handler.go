@@ -1,34 +1,25 @@
 package api
 
 import (
-	"time"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/vanvanni/gorestic/internal/config"
-	"github.com/vanvanni/gorestic/internal/storage"
+	"github.com/vanvanni/gorestic/internal/repository"
 )
 
-type StatsInput struct {
-	TotalSize      int64 `json:"total_size"`
-	TotalFileCount int   `json:"total_file_count"`
-	SnapshotsCount int   `json:"snapshots_count"`
-}
-
 type Handler struct {
-	config  *config.Config
-	storage *storage.Manager
+	config *config.Config
+	repo   *repository.Repository
 }
 
-func NewHandler(cfg *config.Config, store *storage.Manager) *Handler {
+func NewHandler(cfg *config.Config) *Handler {
 	return &Handler{
-		config:  cfg,
-		storage: store,
+		config: cfg,
+		repo:   repository.NewRepository(cfg.DB),
 	}
 }
 
 func (h *Handler) HandleGetStats(c *fiber.Ctx) error {
-	stats := h.storage.GetAllStats()
-	return c.JSON(stats)
+	return c.JSON(fiber.Map{})
 }
 
 func (h *Handler) HandleUpdateStats(c *fiber.Ctx) error {
@@ -39,43 +30,35 @@ func (h *Handler) HandleUpdateStats(c *fiber.Ctx) error {
 		})
 	}
 
-	// Validate API key
-	var foundKey *config.APIKey
-	var keyName string
-	for name, key := range h.config.APIKeys {
-		if key.Key == apiKey {
-			foundKey = &key
-			keyName = name
-			break
-		}
-	}
-
-	if foundKey == nil {
+	key, err := h.repo.GetAPIKeyByKey(c.Context(), apiKey)
+	if err != nil || key == nil {
 		return c.Status(401).JSON(fiber.Map{
 			"error": "Invalid API key",
 		})
 	}
 
-	var input StatsInput
+	// TODO:
+
+	var input interface{}
 	if err := c.BodyParser(&input); err != nil {
 		return c.Status(400).JSON(fiber.Map{
 			"error": "Invalid request body",
 		})
 	}
 
-	stats := storage.BackupStats{
-		TotalSize:      input.TotalSize,
-		TotalFileCount: input.TotalFileCount,
-		SnapshotsCount: input.SnapshotsCount,
-		CreatedAt:      time.Now(),
-		APIKeyName:     keyName,
-	}
+	// stats := storage.BackupStats{
+	// 	TotalSize:      input.TotalSize,
+	// 	TotalFileCount: input.TotalFileCount,
+	// 	SnapshotsCount: input.SnapshotsCount,
+	// 	CreatedAt:      time.Now(),
+	// 	APIKeyName:     keyName,
+	// }
 
-	if err := h.storage.AddStats(stats); err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "Failed to save stats",
-		})
-	}
+	// if err := h.storage.AddStats(stats); err != nil {
+	// 	return c.Status(500).JSON(fiber.Map{
+	// 		"error": "Failed to save stats",
+	// 	})
+	// }
 
 	return c.JSON(fiber.Map{
 		"message": "Stats updated successfully",

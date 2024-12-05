@@ -13,7 +13,6 @@ import (
 	"github.com/gofiber/template/html/v2"
 	"github.com/vanvanni/gorestic/internal/api"
 	"github.com/vanvanni/gorestic/internal/config"
-	"github.com/vanvanni/gorestic/internal/storage"
 	"github.com/vanvanni/gorestic/internal/web"
 )
 
@@ -26,13 +25,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	store, err := storage.NewManager(cfg.Storage.Path)
-	if err != nil {
-		log.Fatalf("Error initializing storage: %v", err)
-	}
-
-	apiHandler := api.NewHandler(cfg, store)
-	webHandler := web.NewHandler(store)
+	apiHandler := api.NewHandler(cfg)
 	engine := html.NewFileSystem(http.FS(viewsFS), ".html")
 
 	engine.AddFunc("formatBytes", func(bytes int64) string {
@@ -51,6 +44,18 @@ func main() {
 	engine.AddFunc("formatTime", func(t time.Time) string {
 		return t.Format("2006-01-02 15:04:05")
 	})
+
+	// Add component function
+	engine.AddFunc("component", func(name string, data interface{}) (string, error) {
+		// This will store the content between component and end tags
+		return "", nil // Return empty as content will be captured
+	})
+
+	// Add layout support for components
+	engine.AddFunc("yield", func() string {
+		return "{{ .Content }}"
+	})
+
 	app := fiber.New(fiber.Config{
 		Views: engine,
 	})
@@ -66,7 +71,10 @@ func main() {
 			cfg.Server.Username: cfg.Server.Password,
 		},
 	}))
-	webGroup.Get("/", webHandler.HandleDashboard)
+
+	webGroup.Get("/", web.HandleDashboard)
+	webGroup.Get("/sources", web.HandleSources)
+	webGroup.Get("/keys", web.HandleKeys)
 
 	log.Printf("Starting server on port %d", cfg.Server.Port)
 	log.Fatal(app.Listen(fmt.Sprintf(":%d", cfg.Server.Port)))
