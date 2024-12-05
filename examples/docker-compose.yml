@@ -5,4 +5,7 @@ services:
     ports:
       - 2010:2010
     volumes:
-      - ./.config:/home/root/.config
+      - gorestic:/home/app/.config
+volumes:
+  gorestic:
+    driver: local
