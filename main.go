@@ -13,6 +13,7 @@ import (
 	"github.com/gofiber/template/html/v2"
 	"github.com/vanvanni/gorestic/internal/api"
 	"github.com/vanvanni/gorestic/internal/config"
+	"github.com/vanvanni/gorestic/internal/ui"
 	"github.com/vanvanni/gorestic/internal/web"
 )
 
@@ -75,6 +76,10 @@ func main() {
 	webGroup.Get("/", web.HandleDashboard)
 	webGroup.Get("/sources", web.HandleSources)
 	webGroup.Get("/keys", web.HandleKeys)
+
+	uiHandler := ui.NewHandler(cfg)
+	webGroup.Get("/ui/api/keys", uiHandler.HandleGetKeys)
+	webGroup.Post("/ui/api/keys", uiHandler.HandlePostKey)
 
 	log.Printf("Starting server on port %d", cfg.Server.Port)
 	log.Fatal(app.Listen(fmt.Sprintf(":%d", cfg.Server.Port)))

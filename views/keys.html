@@ -1,4 +1,67 @@
-<div class="min-h-screen">
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('keys', () => ({
+            create: {
+                show: false,
+                error: "",
+                name: "",
+                key: "",
+                description: ""
+            },
+            api_base: `${location.protocol}//${location.host}`,
+            rows: [],
+
+            show: {
+                ['@click']() {
+                    this.create.show = !this.create.show
+                    this.reset()
+                },
+            },
+
+            init() {
+                this.rows = this.handleGetKeys()
+            },
+            reset() {
+                this.create.name = '';
+                this.create.key = '';
+                this.create.description = '';
+                this.showCreate = false;
+            },
+            async handlePostKey() {
+                this.create.error = '';
+                if (empty(this.create.name) || empty(this.create.key)) {
+                    this.create.error = 'Required fields are: name, key';
+                    return;
+                }
+
+                const res = await fetch(`${this.api_base}/ui/api/keys`, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        name: this.create.name,
+                        key: this.create.key,
+                        description: this.create.description,
+                    }),
+                })
+
+                let resBody = await res.json();
+                if (resBody.error !== undefined) {
+                    this.create.error = resBody.error;
+                    return;
+                }
+
+                this.reset();
+            },
+            async handleGetKeys() {
+                const res = await fetch(`${this.api_base}/ui/api/keys`, { method: "GET" });
+                let resBody = await res.json();
+
+                return resBody.data;
+            }
+        }))
+    })
+</script>
+
+<div class="min-h-screen" x-data="keys">
     <!-- Navigation -->
     <nav class="bg-white shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -19,28 +82,96 @@
     </nav>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="bg-white overflow-hidden shadow rounded-lg lg:col-span-2">
-            <div class="px-4 py-5 sm:p-6">
-                <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Registered Keys</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-gray-200">
-                        <thead>
-                            <tr>
-                                <th
-                                    class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Issued at</th>
-                                <th
-                                    class="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Key</th>
-                                <th
-                                    class="px-6 py-3 bg-gray-50 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    Description</th>
-                            </tr>
-                        </thead>
-                        <tbody id="historyTableBody" class="bg-white divide-y divide-gray-200">
-                            <!-- Table rows will be inserted here -->
-                        </tbody>
-                    </table>
+        <div x-show="create.show" class="flex flex-col bg-white border shadow-sm rounded-xl mb-4">
+            <div class="p-4 md:p-7">
+                <div x-show="create.error !== ''"
+                    class="mb-2 bg-red-100 border border-red-200 text-sm text-red-800 rounded-lg p-4" role="alert"
+                    tabindex="-1" aria-labelledby="hs-soft-color-warning-label">
+                    <span x-text="create.error"></span>
+                </div>
+
+                <h3 class="text-lg font-bold text-gray-800">Create Key</h3>
+                <div class="pt-4">
+                    <div class="columns-2 mb-2">
+                        <div class="">
+                            <label for="input-label" class="block text-sm font-medium mb-2">Name</label>
+                            <input x-model="create.name" type="text" id="input-label"
+                                class="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                                placeholder="node-1.internal.vanvanni.inet">
+                        </div>
+
+                        <div class="">
+                            <label for="input-label" class="block text-sm font-medium mb-2">Key</label>
+                            <input x-model="create.key" type="text" id="input-label"
+                                class="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                                placeholder="d983605e-dd7b-4198-98ad-606d38042fe7">
+                        </div>
+                    </div>
+
+                    <div class="columns-1 mb-2">
+                        <div class="">
+                            <label x-model="create.description" for="textarea-label"
+                                class="block text-sm font-medium mb-2">Description</label>
+                            <textarea id="textarea-label"
+                                class="py-3 px-4 block w-full border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                                rows="3" placeholder="Say hi..."></textarea>
+                        </div>
+                    </div>
+
+                    <button x-on:click="handlePostKey" type="button"
+                        class="py-3 px-4 inline-flex items-center gap-x-2 text-sm font-medium rounded-lg border border-transparent bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none">
+                        Submit
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex flex-col bg-white border shadow-sm rounded-xl mb-4">
+            <div class="p-4 md:p-7">
+                <h3 class="text-lg font-bold text-gray-800 w-full flex items-center justify-between">Keys
+                    <button x-bind="show" type="button"
+                        class="flex shrink-0 justify-center items-center gap-2 size-[24px] text-sm font-medium rounded-lg border border-transparent bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:bg-green-700 disabled:opacity-50 disabled:pointer-events-none">
+                        <i data-lucide="plus"></i>
+                    </button>
+                </h3>
+                <div class="pt-4">
+                    <div class="flex flex-col">
+                        <div class="-m-1.5 overflow-x-auto">
+                            <div class="p-1.5 min-w-full inline-block align-middle">
+                                <div class="overflow-hidden">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                                                    Name</th>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                                                    Key</th>
+                                                <th scope="col"
+                                                    class="px-6 py-3 text-start text-xs font-medium text-gray-500 uppercase">
+                                                    Description</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-gray-200">
+                                            <template x-for="row in rows">
+                                                <tr>
+                                                    <td
+                                                        class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-800">
+                                                        <span x-text="row.Name"></span>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><span
+                                                            x-text="row.Key"></span></td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800"><span
+                                                            x-text="row.Description"></span></td>
+                                                </tr>
+                                            </template>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

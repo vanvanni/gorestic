@@ -9,9 +9,15 @@
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
     <script>
-        tailwind.config = {
-            darkMode: 'class'
+        function empty(val) {
+            if (val == undefined || val == null || val == "") {
+                return true
+            }
+
+            return false;
         }
     </script>
 </head>
@@ -19,6 +25,16 @@
 <body class="bg-gray-50">
     {{template "views/partials/beta-header" .}}
     {{embed}}
+    <aside
+        class="fixed bottom-4 end-4 z-50 flex items-center justify-center gap-4 rounded-lg bg-black px-5 py-3 text-white">
+        <a href="https://github.com/vanvanni/gorestic" target="_blank" rel="noreferrer"
+            class="text-sm font-medium hover:opacity-75">
+            ⭐ Star us on GitHub to support development!
+        </a>
+    </aside>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 
 </html>
