@@ -31,14 +31,14 @@ chmod +x gorestic
 
 On first run, GORestic will create a default configuration file at `~/.config/gorestic/config.toml`.
 
-### Docker (SOON)
+### Docker
 Run using Docker:
 
 ```bash
 docker run -d \
   --name gorestic \
   -p 2010:2010 \
-  -v $HOME/.config/gorestic:/config \
+  -v ./.config:/home/root/.config \
   vanvanni/gorestic
 ```
 
